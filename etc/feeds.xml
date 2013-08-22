@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<feeds>
+    <feed>
+        <name>eztv.it</name>
+        <url>http://pipes.yahoo.com/pipes/pipe.run?_id=yoqr5ElQ3hGvd7xYZMag4A&amp;_render=rss</url>
+        <pattern>(?s)&lt;item&gt;.*?&lt;title&gt;(?P&lt;title&gt;.*?)&lt;/title&gt;.*?&lt;link&gt;(?P&lt;link&gt;.*?)&lt;/link&gt;.*?&lt;/item&gt;</pattern>
+    </feed>
+    <feed>
+        <name>rnz.hrt.hr - 2. Program</name>
+        <url>http://rnz.hrt.hr/?sel_mreza=2.%20Program</url>
+        <baseUrl>http://rnz.hrt.hr/</baseUrl>
+        <pattern>(?s)&lt;tr&gt;.*?&lt;td&gt;.*?&lt;/td&gt;.*?&lt;td class="thumb"&gt;&lt;a rel="nofollow" href="(?P&lt;link&gt;.*?)"&gt;&lt;img src="download.gif" title="Save" alt="Save" style="margin: 1px"&gt;&lt;/a&gt;&lt;/td&gt;.*?&lt;td class="thumb"&gt;&lt;a rel="nofollow" href=".*?"&gt;&lt;img src="play.gif" id=".*?" title="Play" alt="Play" style="margin: 1px"&gt;&lt;/a&gt;&lt;/td&gt;.*?&lt;td&gt;&lt;a rel="nofollow" href=".*?'&gt;(?P&lt;title&gt;.*?)&lt;/a&gt;&lt;/td&gt;.*?&lt;td&gt;.*?&lt;/td&gt;.*?&lt;td&gt;.*?&lt;/td&gt;.*?&lt;td id="dat_size"&gt;.*?&lt;/td&gt;.*?&lt;/tr&gt;</pattern>
+    </feed>
+    <feed>
+        <name>rnz.hrt.hr - Radio Pula</name>
+        <url>http://rnz.hrt.hr/?sel_mreza=Radio%20Pula</url>
+        <baseUrl>http://rnz.hrt.hr/</baseUrl>
+        <pattern>(?s)&lt;tr&gt;.*?&lt;td&gt;.*?&lt;/td&gt;.*?&lt;td class="thumb"&gt;&lt;a rel="nofollow" href="(?P&lt;link&gt;.*?)"&gt;&lt;img src="download.gif" title="Save" alt="Save" style="margin: 1px"&gt;&lt;/a&gt;&lt;/td&gt;.*?&lt;td class="thumb"&gt;&lt;a rel="nofollow" href=".*?"&gt;&lt;img src="play.gif" id=".*?" title="Play" alt="Play" style="margin: 1px"&gt;&lt;/a&gt;&lt;/td&gt;.*?&lt;td&gt;&lt;a rel="nofollow" href=".*?'&gt;(?P&lt;title&gt;.*?)&lt;/a&gt;&lt;/td&gt;.*?&lt;td&gt;.*?&lt;/td&gt;.*?&lt;td&gt;.*?&lt;/td&gt;.*?&lt;td id="dat_size"&gt;.*?&lt;/td&gt;.*?&lt;/tr&gt;</pattern>
+    </feed>
+</feeds>
+<!--(?s)<tr>.*?<td>.*?</td>.*?<td class="thumb"><a rel="nofollow" href="(?P<link>.*?)"><img src="download.gif" title="Save" alt="Save" style="margin: 1px"></a></td>.*?<td class="thumb"><a rel="nofollow" href=".*?"><img src="play.gif" id=".*?" title="Play" alt="Play" style="margin: 1px"></a></td>.*?<td><a rel="nofollow" href=".*?'>(?P<title>.*?)</a></td>.*?<td>.*?</td>.*?<td>.*?</td>.*?<td id="dat_size">.*?</td>.*?</tr>-->
