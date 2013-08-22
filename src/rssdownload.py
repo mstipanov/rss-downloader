@@ -4,6 +4,7 @@
 """
 import os
 import sys
+import traceback
 import re
 import urllib
 import time
@@ -12,18 +13,20 @@ import xml.sax
 from urllib import urlopen
 import logging
 
+logging.basicConfig()
 logger = logging.getLogger('rssdownload')
 
 class Feed:
-    def __init__(self, url=None, baseUrl=None, pattern=None):
+    def __init__(self, url=None, baseUrl=None, pattern=None, disabled=False):
         self.name = None
         self.url = url
         self.baseUrl = baseUrl
         self.pattern = pattern
+        self.disabled = disabled
 
     def toString(self):
-        return "Feed{name: '%s', url: '%s', baseUrl: '%s', pattern: '%s'}" % (
-        self.name, self.url, self.baseUrl, self.pattern)
+        return "Feed{name: '%s', url: '%s', baseUrl: '%s', pattern: '%s', disabled: %s}" % (
+        self.name, self.url, self.baseUrl, self.pattern, self.disabled)
 
 class FeedHandler(xml.sax.handler.ContentHandler):
     def __init__(self):
@@ -31,6 +34,7 @@ class FeedHandler(xml.sax.handler.ContentHandler):
         self.inUrl = False
         self.inBaseUrl = False
         self.inPattern = False
+        self.inDisabled = False
         self.feeds = []
 
     def startElement(self, name, attributes):
@@ -39,6 +43,7 @@ class FeedHandler(xml.sax.handler.ContentHandler):
             self.inUrl = False
             self.inBaseUrl = False
             self.inPattern = False
+            self.inDisabled = False
             self.feed = Feed()
             self.feeds.append(self.feed)
         elif name == "name":
@@ -49,6 +54,8 @@ class FeedHandler(xml.sax.handler.ContentHandler):
             self.inBaseUrl = True
         elif name == "pattern":
             self.inPattern = True
+        elif name == "disabled":
+            self.inDisabled = True
 
     def characters(self, data):
         if self.inName:
@@ -71,6 +78,8 @@ class FeedHandler(xml.sax.handler.ContentHandler):
                 self.feed.pattern = data
             else:
                 self.feed.pattern += data
+        elif self.inDisabled:
+            self.feed.disabled = True
 
     def endElement(self, name):
         if name == "name":
@@ -101,7 +110,7 @@ class ItemDataSource:
 
     def obeysRule(self, item, rule):
         pattern = re.compile(rule, re.IGNORECASE)
-        m = pattern.match(item.title)
+        m = pattern.search(item.title)
         if m:
             return True
         return False
@@ -112,14 +121,27 @@ class ItemDataSource:
         itemList = []
 
         for feed in feeds:
+            if(feed.disabled):
+            	log("Skipping disabled feed: %s" % (feed.name))
+		continue
+
+            log("Downloading feed: %s" % (feed.name))
             content = download(feed.url)
+            if self.setting.debug:
+                log(content)
+                log("Pattern: %s" % (feed.pattern))
             pattern = re.compile(feed.pattern, re.IGNORECASE)
             for m in pattern.finditer(content):
                 link = m.group("link")
+                title = m.group("title")
                 if(not feed.baseUrl is None):
                     link = feed.baseUrl + link
-                item = Item(self.setting, m.group("title"), link)
-                if self.obeysAnyRule(item, rules):
+                item = Item(self.setting, title, link)
+
+                obeys = self.obeysAnyRule(item, rules)
+                if self.setting.debug:
+                    log("Item: match: %s, title: %s, link: %s" % (obeys, title, link))
+                if obeys:
                     itemList.append(item)
         return itemList
 
@@ -188,8 +210,8 @@ class Item:
             file = open(tempFilename, "w")
             file.write(instream.read())
             file.close()
-            if(self.setting.getDownloadDir() != self.setting.outputDir):
-                targetFilename = "%s%s%s" % (self.setting.outputDir, os.sep, filename)
+            if(self.setting.getDownloadDir() != self.setting.getOutputDir()):
+                targetFilename = "%s%s%s" % (self.setting.getOutputDir(), os.sep, filename)
                 copyFile(tempFilename, targetFilename)
         instream.close()
 
@@ -210,7 +232,7 @@ class FeedDataSource:
             parser.parse(self.setting.feedsFile)
             return handler.feeds
         except:
-            log("Error reading feeds as XML from file ", self.setting.feedsFile, " - ", sys.exc_info())
+            log("Error reading feeds as XML from file %s - %s" % (self.setting.feedsFile, sys.exc_info()))
             log("Reading feeds as plain text ...")
             feeds = []
             for url in readNonEmptyLines(self.setting.feedsFile):
@@ -239,13 +261,18 @@ class Setting:
 
     def getDownloadDir(self):
         if(self.cacheDir is None):
-            return self.outputDir
+            return self.getOutputDir()
 
         dir = os.path.expanduser(self.cacheDir)
         if not os.path.exists(dir):
             os.makedirs(dir)
         return dir
 
+    def getOutputDir(self):
+        dir = os.path.expanduser(self.outputDir)
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        return dir
 
 def readTextFile(f):
     file = open(f, "r")
@@ -262,7 +289,7 @@ def readNonEmptyLines(f):
     return rules
 
 def download(url):
-    log("Downloading: %s" % url)
+    log("Downloading: %s" % (url))
     f = urllib.urlopen(url)
     return f.read()
 
@@ -278,6 +305,9 @@ def lastIndexOf(str, sub):
     return index
 
 def start(setting):
+    if(setting.debug):
+        log("DEBUG is Enabled!")
+
     try:
         log("Started!")
         ruleDataSource = RuleDataSource(setting)
@@ -286,12 +316,15 @@ def start(setting):
         for item in itemDataSource.findItems(ruleDataSource, feedDataSource):
             try:
                 item.download()
-            except:
-                log("Unexpected error:", sys.exc_info())
+            except Exception:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback.print_tb(exc_traceback, limit=100, file=sys.stderr)
+                log("Unexpected error: %s" % (sys.exc_info()))
                 log("Continuing to next item...")
         log("Finished!")
     except:
-        log("Unexpected error:", sys.exc_info())
+#        log("Unexpected error: %s" % (sys.exc_info()))
+        log("Unexpected error: %s %s %s" % (sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]))
 
 def parseArguments(setting, args):
     for i in range(0, len(args) - 1):
@@ -308,6 +341,8 @@ def parseArguments(setting, args):
             setting.waitPeriod = float(args[i + 1].strip())
         elif arg == "-l" or arg == "--logs-dir":
             setting.logsDir = args[i + 1].strip()
+        elif arg == "-d" or arg == "--debug":
+            setting.debug = True
 
 def configureLogging(setting):
     logger.setLevel(logging.DEBUG)
